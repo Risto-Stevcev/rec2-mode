@@ -196,20 +196,17 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
 
 (defun rec/snippet ()
   "Creates a snippet based on the current record"
-  ;; (interactive "sName: ")
   (let ((buffer-name "*rec/snippet*")
         (record-point (progn (rec/current-record) (point))))
     (with-output-to-temp-buffer buffer-name
       (display-message-or-buffer
        (string-join
         (pcase-dolist
-            (`(,`(record ,_ ,metadata) . ,_)
-             (nconc
+            (`(record ,_ . ,`(,metadata))
+             (car
               (read-from-string
                (format "(%s)"
-                       (shell-command-to-string "recinf -d -S /home/risto/notes/new/books.rec"))) nil)
-             )
-          ;;(print metadata)
+                       (shell-command-to-string "recinf -d -S /home/risto/notes/new/books.rec")))))
           (let ((record-name nil)
                 (fields '()))
             (pcase-dolist (`(field ,location ,type ,value) metadata)
@@ -218,7 +215,7 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
                 ("%type" (when record-name (add-to-list 'fields (rec/first-word value) t)))
                 ("%unique" (when record-name (add-to-list 'fields (rec/first-word value) t)))
                 ("%mandatory" (when record-name (add-to-list 'fields (rec/first-word value) t)))))
-            (when record-point
+            (when fields
               (print
                (string-join
                 (cons (format "# name: %s\n# --" record-name)
@@ -226,14 +223,10 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
                             for field in (cl-delete-duplicates fields)
                             collect
                             (format "%s: $%d" field index)))
-                "\n")
-               ))
-            )
-          ))
+                "\n"))))))
        buffer-name)
       (pop-to-buffer buffer-name)
-      (text-mode)
-      )))
+      (text-mode))))
 
 (defvar rec/mode-map
   (let ((map (make-sparse-keymap)))
