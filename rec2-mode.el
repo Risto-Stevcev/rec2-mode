@@ -230,15 +230,13 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
 (defun rec/template (s)
   (interactive "sTemplate Path: ")
   (let* ((line (thing-at-point 'line))
-        (field (rec/get-field line))
-        (value (rec/get-value line))
-        (buffer-name "*recfmt*"))
+         (field (rec/get-field line))
+         (value (rec/get-value line))
+         (buffer-name "*recfmt*"))
     (with-output-to-temp-buffer buffer-name
-      (display-message-or-buffer
-       (shell-command-to-string
-        (format "recsel -t %s -e \"%s = '%s'\" %s | recfmt -f %s" (rec/current-record) field value
-                (rec/current-file) s))
-       buffer-name)
+      (shell-command
+       (format "recsel -t %s -e \"%s = '%s'\" %s | recfmt -f %s" (rec/current-record) field value
+               (rec/current-file) s) buffer-name)
       (pop-to-buffer buffer-name))))
 
 (defvar rec/mode-map
