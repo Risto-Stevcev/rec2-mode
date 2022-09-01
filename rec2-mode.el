@@ -120,11 +120,11 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
 
 (defun rec/get-field (field-entry)
   (rec/trim-string
-   (replace-regexp-in-string rec/field-value-re "\\1" field-entry)))
+   (replace-regexp-in-string "^\\([A-Za-z0-9]+\\): .*" "\\1" field-entry)))
 
 (defun rec/get-value (field-entry)
   (rec/trim-string
-   (replace-regexp-in-string rec/field-value-re "\\2" field-entry)))
+   (replace-regexp-in-string "^\\([A-Za-z0-9]+\\): *" "" field-entry)))
 
 (defun rec/query (s)
   "Query for records with the provided expression."
@@ -203,10 +203,9 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
        (string-join
         (pcase-dolist
             (`(record ,_ . ,`(,metadata))
-             (car
-              (read-from-string
-               (format "(%s)"
-                       (shell-command-to-string "recinf -d -S /home/risto/notes/new/books.rec")))))
+             (car (read-from-string
+                   (format "(%s)" (shell-command-to-string
+                                   (format "recinf -d -S %s" (rec/current-file)))))))
           (let ((record-name nil)
                 (fields '()))
             (pcase-dolist (`(field ,location ,type ,value) metadata)
@@ -227,6 +226,20 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
        buffer-name)
       (pop-to-buffer buffer-name)
       (text-mode))))
+
+(defun rec/template (s)
+  (interactive "sTemplate Path: ")
+  (let* ((line (thing-at-point 'line))
+        (field (rec/get-field line))
+        (value (rec/get-value line))
+        (buffer-name "*recfmt*"))
+    (with-output-to-temp-buffer buffer-name
+      (display-message-or-buffer
+       (shell-command-to-string
+        (format "recsel -t %s -e \"%s = '%s'\" %s | recfmt -f %s" (rec/current-record) field value
+                (rec/current-file) s))
+       buffer-name)
+      (pop-to-buffer buffer-name))))
 
 (defvar rec/mode-map
   (let ((map (make-sparse-keymap)))
