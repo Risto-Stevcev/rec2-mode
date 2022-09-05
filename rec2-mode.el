@@ -187,8 +187,8 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
         (format "rec2csv -t %s %s" (rec/current-record) (rec/current-file)))
        buffer-name)
       (pop-to-buffer buffer-name)
-      (org-table-convert-region 1 (buffer-size (get-buffer buffer-name)))
-      (org-mode))))
+      (org-mode)
+      (org-table-convert-region 1 (buffer-size (get-buffer buffer-name))))))
 
 (defun rec/first-word (s)
   (car (split-string s)))
