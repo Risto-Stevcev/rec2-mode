@@ -79,7 +79,8 @@
    (".\\(#\\)" (1 "."))))
 
 (defface rec/continuation-line-face '((t :foreground "#808080"))
-  "Face for line continuations (+).")
+  "Face for line continuations (+)."
+  :group 'rec2-mode)
 
 (defvar rec/font-lock-keywords
   `((,(regexp-opt rec/special-fields) . 'font-lock-builtin-face)
@@ -176,12 +177,14 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
   (interactive)
   (insert "\n+ "))
 
+(declare-function org-table-convert-region "org")
+
 (defun rec/to-table ()
   (let ((buffer-name "*rec2csv*"))
     (with-output-to-temp-buffer buffer-name
       (display-message-or-buffer
        (shell-command-to-string
-        (format "rec2csv %s" (rec/current-file)))
+        (format "rec2csv -t %s %s" (rec/current-record) (rec/current-file)))
        buffer-name)
       (pop-to-buffer buffer-name)
       (org-table-convert-region 1 (buffer-size (get-buffer buffer-name)))
@@ -189,10 +192,6 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
 
 (defun rec/first-word (s)
   (car (split-string s)))
-
-(defun rec/first-word-to-list (s l)
-  (when s
-    (add-to-list 'l (rec/first-word value) t)))
 
 (defun rec/snippet ()
   "Creates a snippet based on the current record"
@@ -211,17 +210,17 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
             (pcase-dolist (`(field ,location ,type ,value) metadata)
               (pcase type
                 ("%rec" (when (equal location record-point) (setf record-name value)))
-                ("%type" (when record-name (add-to-list 'fields (rec/first-word value) t)))
-                ("%unique" (when record-name (add-to-list 'fields (rec/first-word value) t)))
-                ("%mandatory" (when record-name (add-to-list 'fields (rec/first-word value) t)))))
+                ("%type" (when record-name (setf fields (append fields `(,(rec/first-word value))))))
+                ("%unique" (when record-name (setf fields (append fields `(,(rec/first-word value))))))
+                ("%mandatory" (when record-name (setf fields (append fields `(,(rec/first-word value))))))))
             (when fields
               (print
                (string-join
                 (cons (format "# name: %s\n# --" record-name)
-                      (loop for index from 1
-                            for field in (cl-delete-duplicates fields)
-                            collect
-                            (format "%s: $%d" field index)))
+                      (cl-loop for index from 1
+                               for field in (delete-dups fields)
+                               collect
+                               (format "%s: $%d" field index)))
                 "\n"))))))
        buffer-name)
       (pop-to-buffer buffer-name)
